@@ -1,6 +1,8 @@
 package br.dev.nullbyte.fileutils;
 
-import br.dev.nullbyte.fileutils.SplitPDF.SplitPDF;
+import br.dev.nullbyte.fileutils.Tools.PDF.CompressPDF;
+import br.dev.nullbyte.fileutils.Tools.PDF.OptimizePDF;
+import br.dev.nullbyte.fileutils.Tools.PDF.SplitPDF;
 
 import javax.swing.*;
 import java.io.*;
@@ -221,6 +223,10 @@ public class FileUtils {
 	public static void runModule(String command, String... args) {
 		if (command.equals("split-pdf")) {
 			SplitPDF.run(args);
+		} else if (command.equals("compress-pdf")) {
+			CompressPDF.run(args);
+		} else if (command.equals("optimize-pdf")) {
+			OptimizePDF.run(args);
 		}
 	}
 }

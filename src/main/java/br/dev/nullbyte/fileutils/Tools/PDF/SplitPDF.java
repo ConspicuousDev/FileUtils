@@ -1,4 +1,4 @@
-package br.dev.nullbyte.fileutils.SplitPDF;
+package br.dev.nullbyte.fileutils.Tools.PDF;
 
 import br.dev.nullbyte.fileutils.FileUtils;
 import org.apache.pdfbox.contentstream.operator.Operator;
@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Set;
 
 public class SplitPDF {
-	private final static long DEFAULT_CHUNK_SIZE_BYTES = 10_000_000;
+	public final static long DEFAULT_CHUNK_SIZE_BYTES = 10_000_000;
 
 	public static void run(String... args) {
 		File file;
@@ -40,7 +40,7 @@ public class SplitPDF {
 		}
 	}
 
-	private static void splitPdf(File pdfFile, long maxChunkSizeBytes) throws IOException {
+	public static void splitPdf(File pdfFile, long maxChunkSizeBytes) throws IOException {
 		String baseFileName = pdfFile.getPath();
 		if (baseFileName.toLowerCase().endsWith(".pdf"))
 			baseFileName = baseFileName.substring(0, baseFileName.length() - ".pdf".length());

@@ -15,8 +15,16 @@ public class ContextMenuUtils {
 	public static final List<ContextMenuOption> contextMenuOptionsList = Arrays.asList(
 			new ContextMenuOption()
 					.fileExtension(".pdf")
+					.label("Compress PDF file")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --compress-pdf \"%FILE_PATH%\""),
+			new ContextMenuOption()
+					.fileExtension(".pdf")
 					.label("Split PDF file in 10MB chunks")
-					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --split-pdf \"%FILE_PATH%\"")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --split-pdf \"%FILE_PATH%\""),
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Optimize PDF file")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --optimize-pdf \"%FILE_PATH%\"")
 	);
 
 	private static boolean validateContextMenuOptions(ContextMenuOption contextMenuOption) {
