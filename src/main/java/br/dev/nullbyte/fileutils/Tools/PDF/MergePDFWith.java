@@ -29,8 +29,7 @@ public class MergePDFWith {
 					"Merge PDF command requires at least one argument (base PDF file).");
 
 		File baseFile = new File(args[0]);
-		if (!baseFile.exists() || !baseFile.isFile()
-				|| !baseFile.getName().endsWith(".pdf"))
+		if (!baseFile.exists() || !baseFile.isFile())
 			throw new RuntimeException("Merge PDF requires a valid PDF file path.");
 
 		filesToMerge.add(baseFile);
