@@ -28,6 +28,11 @@ public class ContextMenuUtils {
 					.fileExtension(".pdf")
 					.label("Merge PDF with...")
 					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --merge-pdf-with \"%FILE_PATH%\"")
+			,
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Remove PDF password")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --remove-pdf-password \"%FILE_PATH%\"")
 	);
 
 	private static boolean validateContextMenuOptions(ContextMenuOption contextMenuOption) {
