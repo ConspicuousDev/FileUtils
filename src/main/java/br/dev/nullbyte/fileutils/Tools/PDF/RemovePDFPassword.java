@@ -36,6 +36,9 @@ public class RemovePDFPassword {
 	}
 
 	public static void removePdfPassword(File file, String password) {
+		if (file == null || !file.exists() || !file.isFile())
+			throw new RuntimeException("Invalid file: " + (file == null ? "null" : file.getAbsolutePath()));
+
 		FileUtils.LOGGER.info("Removing password from file: " + file.getAbsolutePath());
 
 		File oldFile = new File(file.getAbsolutePath());

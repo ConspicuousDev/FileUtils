@@ -1,6 +1,9 @@
 package br.dev.nullbyte.fileutils.Tools.PDF;
 
+import br.dev.nullbyte.fileutils.AbortException;
+import br.dev.nullbyte.fileutils.FileChooserUtils;
 import br.dev.nullbyte.fileutils.FileUtils;
+import br.dev.nullbyte.fileutils.MessageException;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -10,13 +13,11 @@ import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 
 import javax.imageio.ImageIO;
-import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class MergePDFWith {
@@ -24,13 +25,16 @@ public class MergePDFWith {
 	public static void run(String... args) {
 		List<File> filesToMerge = new ArrayList<>();
 
-		if (args.length < 1)
-			throw new RuntimeException("Merge PDF command requires at least one argument (base PDF file).");
-
-		File baseFile = new File(args[0]);
-		if (!baseFile.exists() || !baseFile.isFile())
-			throw new RuntimeException("Merge PDF requires a valid PDF file path.");
-
+		File baseFile;
+		if (args.length >= 1) {
+			baseFile = new File(args[0]);
+			if (!baseFile.exists() || !baseFile.isFile())
+				throw new RuntimeException("Merge PDF requires a valid base PDF file path.");
+		} else {
+			baseFile = FileChooserUtils.choosePdf();
+			if (baseFile == null)
+				throw new AbortException();
+		}
 		filesToMerge.add(baseFile);
 
 		if (args.length >= 2) {
@@ -41,9 +45,9 @@ public class MergePDFWith {
 				filesToMerge.add(file);
 			}
 		} else {
-			List<File> selectedFiles = openFileChooser();
-			if (selectedFiles == null || selectedFiles.isEmpty())
-				throw new RuntimeException("No files selected for merging.");
+			List<File> selectedFiles = FileChooserUtils.chooseFiles();
+			if (selectedFiles.isEmpty())
+				throw new MessageException("No files selected for merging.");
 			filesToMerge.addAll(selectedFiles);
 		}
 
@@ -52,21 +56,6 @@ public class MergePDFWith {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-	}
-
-	private static List<File> openFileChooser() {
-		FileDialog fileChooser = new FileDialog((java.awt.Frame) null,
-				"Select files to merge with", FileDialog.LOAD);
-		fileChooser.setMultipleMode(true);
-
-		fileChooser.setVisible(true);
-
-		File[] selectedFiles = fileChooser.getFiles();
-
-		if (selectedFiles != null && selectedFiles.length > 0)
-			return Arrays.asList(selectedFiles);
-
-		return null;
 	}
 
 	public static void mergePdfWith(List<File> pdfFiles) throws IOException {

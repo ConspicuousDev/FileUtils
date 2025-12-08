@@ -32,6 +32,10 @@ public class FileChooserUtils {
 		return chooseFiles(null, filters);
 	}
 
+	public static List<File> choosePdfs() {
+		return chooseFiles(PDF_FILTER);
+	}
+
 	private static List<File> open(String title, boolean multiple, Filter... filters) {
 		if (title == null || title.isEmpty())
 			title = "Select " + (multiple ? "files" : "file");
