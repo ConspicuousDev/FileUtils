@@ -164,13 +164,16 @@ public class ContextMenuUtils {
 				String shellPath = progIdPath + "\\shell\\";
 				String menuKeyPath = shellPath + "\\" + menuId;
 
+				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, progIdPath))
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, progIdPath);
+
 				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, shellPath))
-					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, progIdPath, "shell");
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, shellPath);
 
-				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, shellPath + "\\" + menuId))
-					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, shellPath, menuId);
+				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, menuKeyPath))
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, menuKeyPath);
 
-				Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, shellPath + "\\" + menuId, "", contextMenuOption.label);
+				Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, menuKeyPath, "", contextMenuOption.label);
 
 				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, menuKeyPath + "\\command"))
 					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, menuKeyPath, "command");
