@@ -1,8 +1,7 @@
 package br.dev.nullbyte.fileutils;
 
-import com.github.sarxos.winreg.HKey;
-import com.github.sarxos.winreg.RegistryException;
-import com.github.sarxos.winreg.WindowsRegistry;
+import com.sun.jna.platform.win32.Advapi32Util;
+import com.sun.jna.platform.win32.WinReg;
 
 import java.io.File;
 import java.util.Arrays;
@@ -12,192 +11,198 @@ import java.util.logging.Level;
 import java.util.regex.Matcher;
 
 public class ContextMenuUtils {
-    public static final List<ContextMenuOption> contextMenuOptionsList = Arrays.asList(
-            new ContextMenuOption()
-                    .fileExtension(".pdf")
-                    .label("Compress PDF file")
-                    .command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --compress-pdf \"%FILE_PATH%\""),
-            new ContextMenuOption()
-                    .fileExtension(".pdf")
-                    .label("Split PDF file in 10MB chunks")
-                    .command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --split-pdf \"%FILE_PATH%\""),
-            new ContextMenuOption()
-                    .fileExtension(".pdf")
-                    .label("Optimize PDF file")
-                    .command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --optimize-pdf \"%FILE_PATH%\""),
-            new ContextMenuOption()
-                    .fileExtension(".pdf")
-                    .label("Merge PDF with...")
-                    .command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --merge-pdf-with \"%FILE_PATH%\"")
-    );
+	public static final List<ContextMenuOption> contextMenuOptionsList = Arrays.asList(
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Compress PDF file")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --compress-pdf \"%FILE_PATH%\""),
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Split PDF file in 10MB chunks")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --split-pdf \"%FILE_PATH%\""),
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Optimize PDF file")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --optimize-pdf \"%FILE_PATH%\""),
+			new ContextMenuOption()
+					.fileExtension(".pdf")
+					.label("Merge PDF with...")
+					.command("\"" + JavaUtils.getJavaWPath() + "\" -jar \"%APP_PATH%\" --merge-pdf-with \"%FILE_PATH%\"")
+	);
 
-    private static boolean validateContextMenuOptions(ContextMenuOption contextMenuOption) {
-        if (contextMenuOption.fileExtensions.isEmpty())
-            return false;
-        if (contextMenuOption.label == null || contextMenuOption.label.isEmpty())
-            return false;
-        if (contextMenuOption.command == null || contextMenuOption.command.isEmpty())
-            return false;
-        return true;
-    }
+	private static boolean validateContextMenuOptions(ContextMenuOption contextMenuOption) {
+		if (contextMenuOption.fileExtensions.isEmpty())
+			return false;
+		if (contextMenuOption.label == null || contextMenuOption.label.isEmpty())
+			return false;
+		if (contextMenuOption.command == null || contextMenuOption.command.isEmpty())
+			return false;
+		return true;
+	}
 
-    private static String getProgIdForExtension(WindowsRegistry registry, String fileExtension) {
-        try {
-            String userChoicePath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\" + fileExtension + "\\UserChoice";
+	private static String getProgIdForExtension(String fileExtension) {
+		String userChoicePath = "Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\FileExts\\" + fileExtension + "\\UserChoice";
+		if (Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, userChoicePath)) {
+			try {
+				String progId = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, userChoicePath, "ProgId");
+				if (progId != null && !progId.isEmpty()) {
+					FileUtils.LOGGER.fine("Found ProgID from UserChoice: " + progId);
+					return progId;
+				}
+			} catch (Exception e) {
+				FileUtils.LOGGER.fine("Failed to read UserChoice for " + fileExtension);
+			}
+		}
 
-            try {
-                String progId = registry.readString(HKey.HKCU, userChoicePath, "ProgId");
-                if (progId != null && !progId.isEmpty()) {
-                    FileUtils.LOGGER.fine("Found ProgID from UserChoice: " + progId + " for " + fileExtension);
-                    return progId;
-                }
-            } catch (Exception e) {
-                FileUtils.LOGGER.fine("No UserChoice ProgID found for " + fileExtension + ", trying traditional method");
-            }
+		String userClassPath = "Software\\Classes\\" + fileExtension;
+		if (Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, userClassPath)) {
+			try {
+				String progId = Advapi32Util.registryGetStringValue(WinReg.HKEY_CURRENT_USER, userClassPath, "");
+				if (progId != null && !progId.isEmpty()) {
+					FileUtils.LOGGER.fine("Found ProgID from HKCU Classes: " + progId);
+					return progId;
+				}
+			} catch (Exception e) {
+				FileUtils.LOGGER.fine("Failed to read HKCU Classes for " + fileExtension);
+			}
+		}
 
-            try {
-                String progId = registry.readString(HKey.HKCU, "Software\\Classes\\" + fileExtension, "");
-                if (progId != null && !progId.isEmpty()) {
-                    FileUtils.LOGGER.fine("Found ProgID from direct registration: " + progId + " for " + fileExtension);
-                    return progId;
-                }
-            } catch (Exception e) {
-                FileUtils.LOGGER.fine("No direct registration ProgID found for " + fileExtension);
-            }
+		if (Advapi32Util.registryKeyExists(WinReg.HKEY_CLASSES_ROOT, fileExtension)) {
+			try {
+				String progId = Advapi32Util.registryGetStringValue(WinReg.HKEY_CLASSES_ROOT, fileExtension, "");
+				if (progId != null && !progId.isEmpty()) {
+					FileUtils.LOGGER.fine("Found ProgID from HKCR: " + progId);
+					return progId;
+				}
+			} catch (Exception e) {
+				FileUtils.LOGGER.fine("Failed to read HKCR for " + fileExtension);
+			}
+		}
 
-            try {
-                String progId = registry.readString(HKey.HKCR, fileExtension, "");
-                if (progId != null && !progId.isEmpty()) {
-                    FileUtils.LOGGER.fine("Found ProgID from HKCR: " + progId + " for " + fileExtension);
-                    return progId;
-                }
-            } catch (Exception e) {
-                FileUtils.LOGGER.fine("No HKCR ProgID found for " + fileExtension);
-            }
+		return null;
+	}
 
-            FileUtils.LOGGER.warning("Could not find ProgID for " + fileExtension);
-            return null;
+	public static void setupContextMenuOptions() {
+		for (int i = 0; i < contextMenuOptionsList.size(); i++)
+			setupContextMenuOption(contextMenuOptionsList.get(i), i);
+	}
 
-        } catch (Exception e) {
-            FileUtils.LOGGER.log(Level.WARNING, "Error getting ProgID for " + fileExtension, e);
-            return null;
-        }
-    }
+	public static void removeContextMenuOptions() {
+		FileUtils.LOGGER.info("Removing context menu options...");
 
-    public static void setupContextMenuOptions() {
-        for (int i = 0; i < contextMenuOptionsList.size(); i++)
-            setupContextMenuOption(contextMenuOptionsList.get(i), i);
-    }
+		try {
+			for (int i = 0; i < contextMenuOptionsList.size(); i++) {
+				ContextMenuOption option = contextMenuOptionsList.get(i);
 
-    public static void removeContextMenuOptions() {
-        FileUtils.LOGGER.info("Removing context menu options...");
+				if (!validateContextMenuOptions(option)) {
+					FileUtils.LOGGER.warning("Skipping invalid context menu option during removal.");
+					continue;
+				}
 
-        try {
-            WindowsRegistry registry = WindowsRegistry.getInstance();
+				String menuId = FileUtils.APP_NAME + "_" + i;
 
-            for (int i = 0; i < contextMenuOptionsList.size(); i++) {
-                ContextMenuOption option = contextMenuOptionsList.get(i);
+				for (String fileExtension : option.fileExtensions) {
+					FileUtils.LOGGER.fine("Removing context menu for " + fileExtension + " files");
 
-                if (!validateContextMenuOptions(option)) {
-                    FileUtils.LOGGER.warning("Skipping invalid context menu option during removal.");
-                    continue;
-                }
+					try {
+						String progId = getProgIdForExtension(fileExtension);
 
-                String menuId = FileUtils.APP_NAME + "_" + i;
+						if (progId != null && !progId.isEmpty()) {
+							String shellKeyPath = "Software\\Classes\\" + progId + "\\shell\\" + menuId;
+							String commandKeyPath = shellKeyPath + "\\command";
 
-                for (String fileExtension : option.fileExtensions) {
-                    FileUtils.LOGGER.fine("Removing context menu for " + fileExtension + " files");
+							Advapi32Util.registryDeleteKey(WinReg.HKEY_CURRENT_USER, commandKeyPath);
+							FileUtils.LOGGER.fine("Deleted command key: " + commandKeyPath);
+							Advapi32Util.registryDeleteKey(WinReg.HKEY_CURRENT_USER, shellKeyPath);
+							FileUtils.LOGGER.fine("Deleted shell key: " + shellKeyPath);
+						}
 
-                    try {
-                        String progId = getProgIdForExtension(registry, fileExtension);
+						String shellKeyPath = "Software\\Classes\\" + fileExtension + "\\shell\\" + menuId;
+						String commandKeyPath = shellKeyPath + "\\command";
 
-                        if (progId != null && !progId.isEmpty()) {
-                            String commandKeyPath = "Software\\Classes\\" + progId + "\\shell\\" + menuId + "\\command";
-                            registry.deleteKey(HKey.HKCU, commandKeyPath);
-                            FileUtils.LOGGER.fine("Deleted command key: " + commandKeyPath);
+						Advapi32Util.registryDeleteKey(WinReg.HKEY_CURRENT_USER, commandKeyPath);
+						FileUtils.LOGGER.fine("Deleted command key: " + commandKeyPath);
+						Advapi32Util.registryDeleteKey(WinReg.HKEY_CURRENT_USER, shellKeyPath);
+						FileUtils.LOGGER.fine("Deleted shell key: " + shellKeyPath);
+					} catch (Exception e) {
+						FileUtils.LOGGER.warning("Failed to remove registry key for " + fileExtension + ": " + e.getMessage());
+					}
+				}
+			}
+			FileUtils.LOGGER.info("Context menu options removed successfully.");
+		} catch (Exception e) {
+			FileUtils.LOGGER.log(Level.SEVERE, "Error removing context menu options.", e);
+		}
+	}
 
-                            String shellKeyPath = "Software\\Classes\\" + progId + "\\shell\\" + menuId;
-                            registry.deleteKey(HKey.HKCU, shellKeyPath);
-                            FileUtils.LOGGER.fine("Deleted shell key: " + shellKeyPath);
-                        }
+	private static void setupContextMenuOption(ContextMenuOption contextMenuOption, int id) {
+		if (!validateContextMenuOptions(contextMenuOption)) {
+			FileUtils.LOGGER.warning(String.format("Invalid context menu option: '%s'", contextMenuOption.label));
+			return;
+		}
 
-                        String commandKeyPath = "Software\\Classes\\" + fileExtension + "\\shell\\" + menuId + "\\command";
-                        registry.deleteKey(HKey.HKCU, commandKeyPath);
+		try {
+			String finalCommand = contextMenuOption.command
+					.replaceFirst("%APP_PATH%", Matcher.quoteReplacement(FileUtils.APP_FOLDER + File.separator + FileUtils.JAR_NAME))
+					.replaceFirst("%FILE_PATH%", "%1");
+			String menuId = FileUtils.APP_NAME + "_" + id;
 
-                        String shellKeyPath = "Software\\Classes\\" + fileExtension + "\\shell\\" + menuId;
-                        registry.deleteKey(HKey.HKCU, shellKeyPath);
-                    } catch (RegistryException e) {
-                        FileUtils.LOGGER.warning("Failed to remove registry key for " + fileExtension + ": " + e.getMessage());
-                    }
-                }
-            }
-            FileUtils.LOGGER.info("Context menu options removed successfully.");
-        } catch (Exception e) {
-            FileUtils.LOGGER.log(Level.SEVERE, "Error removing context menu options.", e);
-        }
-    }
+			for (String fileExtension : contextMenuOption.fileExtensions) {
+				FileUtils.LOGGER.info(String.format("Setting up context menu option '%s' for '%s' files", contextMenuOption.label, fileExtension));
 
-    private static void setupContextMenuOption(ContextMenuOption contextMenuOption, int id) {
-        if (!validateContextMenuOptions(contextMenuOption)) {
-            FileUtils.LOGGER.warning(String.format("Invalid context menu option: '%s'", contextMenuOption.label));
-            return;
-        }
+				String progId = getProgIdForExtension(fileExtension);
+				if (progId == null || progId.isEmpty())
+					progId = fileExtension;
+				else FileUtils.LOGGER.info("Using ProgID: " + progId + " for " + fileExtension);
 
-        try {
-            WindowsRegistry registry = WindowsRegistry.getInstance();
-            String finalCommand = contextMenuOption.command
-                    .replaceFirst("%APP_PATH%", Matcher.quoteReplacement(FileUtils.APP_FOLDER + File.separator + FileUtils.JAR_NAME))
-                    .replaceFirst("%FILE_PATH%", "%1");
-            String menuId = FileUtils.APP_NAME + "_" + id;
+				String progIdPath = "Software\\Classes\\" + progId;
+				String shellPath = progIdPath + "\\shell\\";
+				String menuKeyPath = shellPath + "\\" + menuId;
 
-            for (String fileExtension : contextMenuOption.fileExtensions) {
-                FileUtils.LOGGER.info(String.format("Setting up context menu option '%s' for '%s' files", contextMenuOption.label, fileExtension));
+				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, shellPath))
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, progIdPath, "shell");
 
-                String progId = getProgIdForExtension(registry, fileExtension);
-                if (progId == null || progId.isEmpty())
-                    progId = fileExtension;
-                else FileUtils.LOGGER.info("Using ProgID: " + progId + " for " + fileExtension);
+				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, shellPath + "\\" + menuId))
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, shellPath, menuId);
 
-                String shellKeyPath = "Software\\Classes\\" + progId + "\\shell\\" + menuId;
-                registry.createKey(HKey.HKCU, shellKeyPath);
-                registry.writeStringValue(HKey.HKCU, shellKeyPath, "", contextMenuOption.label);
-                //registry.writeStringValue(HKey.HKCU, shellKeyPath, "Position", "Top");
+				Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, shellPath + "\\" + menuId, "", contextMenuOption.label);
 
-                String commandKeyPath = shellKeyPath + "\\command";
-                registry.createKey(HKey.HKCU, commandKeyPath);
-                registry.writeStringValue(HKey.HKCU, commandKeyPath, "", finalCommand);
+				if (!Advapi32Util.registryKeyExists(WinReg.HKEY_CURRENT_USER, menuKeyPath + "\\command"))
+					Advapi32Util.registryCreateKey(WinReg.HKEY_CURRENT_USER, menuKeyPath, "command");
 
-                FileUtils.LOGGER.fine(String.format("Context menu option '%s' command for '%s' (ProgID: %s): '%s'", contextMenuOption.label, fileExtension, progId, finalCommand));
-            }
+				Advapi32Util.registrySetStringValue(WinReg.HKEY_CURRENT_USER, menuKeyPath + "\\command", "", finalCommand);
 
-            FileUtils.LOGGER.info(String.format("Context menu option '%s' setup completed successfully.", contextMenuOption.label));
-        } catch (RegistryException e) {
-            FileUtils.LOGGER.log(Level.SEVERE, String.format("Failed to setup context menu option: '%s'", contextMenuOption.label), e);
-        }
-    }
+				FileUtils.LOGGER.fine(String.format("Context menu option '%s' command for '%s' (ProgID: %s): '%s'", contextMenuOption.label, fileExtension, progId, finalCommand));
+			}
 
-    public static class ContextMenuOption {
-        private final List<String> fileExtensions = new LinkedList<>();
-        private String label = null;
-        private String command = null;
+			FileUtils.LOGGER.info(String.format("Context menu option '%s' setup completed successfully.", contextMenuOption.label));
+		} catch (Exception e) {
+			FileUtils.LOGGER.log(Level.SEVERE, String.format("Failed to setup context menu option: '%s'", contextMenuOption.label), e);
+		}
+	}
 
-        public ContextMenuOption fileExtension(String fileExtension) {
-            if (fileExtension == null || fileExtension.isEmpty())
-                throw new IllegalArgumentException("File extension cannot be null or empty");
-            if (!fileExtension.startsWith("."))
-                throw new IllegalArgumentException("File extension must start with '.'");
-            this.fileExtensions.add(fileExtension);
-            return this;
-        }
+	public static class ContextMenuOption {
+		private final List<String> fileExtensions = new LinkedList<>();
+		private String label = null;
+		private String command = null;
 
-        public ContextMenuOption label(String label) {
-            this.label = label;
-            return this;
-        }
+		public ContextMenuOption fileExtension(String fileExtension) {
+			if (fileExtension == null || fileExtension.isEmpty())
+				throw new IllegalArgumentException("File extension cannot be null or empty");
+			if (!fileExtension.startsWith("."))
+				throw new IllegalArgumentException("File extension must start with '.'");
+			this.fileExtensions.add(fileExtension);
+			return this;
+		}
 
-        public ContextMenuOption command(String command) {
-            this.command = command;
-            return this;
-        }
-    }
+		public ContextMenuOption label(String label) {
+			this.label = label;
+			return this;
+		}
+
+		public ContextMenuOption command(String command) {
+			this.command = command;
+			return this;
+		}
+	}
 }

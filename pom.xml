@@ -16,9 +16,14 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.github.sarxos</groupId>
-            <artifactId>windows-registry-util</artifactId>
-            <version>0.3</version>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.14.0</version>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna-platform</artifactId>
+            <version>5.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
