@@ -25,8 +25,7 @@ public class MergePDFWith {
 		List<File> filesToMerge = new ArrayList<>();
 
 		if (args.length < 1)
-			throw new RuntimeException(
-					"Merge PDF command requires at least one argument (base PDF file).");
+			throw new RuntimeException("Merge PDF command requires at least one argument (base PDF file).");
 
 		File baseFile = new File(args[0]);
 		if (!baseFile.exists() || !baseFile.isFile())
